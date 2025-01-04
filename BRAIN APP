@@ -1,0 +1,67 @@
+from flask import Flask, request, jsonify
+import random
+
+app = Flask(__name__)
+
+# Simulated database for user profiles and progress
+user_data = {}
+
+# Default exercises
+exercises = [
+    {"id": 1, "name": "Positive Visualization", "description": "Spend 5 minutes visualizing a positive outcome for a current challenge.", "category": "mindset"},
+    {"id": 2, "name": "Gratitude Practice", "description": "Write down 3 things you're grateful for today.", "category": "emotional"},
+    {"id": 3, "name": "Affirmation Repetition", "description": "Repeat your personal affirmation 10 times in front of a mirror.", "category": "self-esteem"},
+]
+
+# Helper function to personalize exercises
+def personalize_exercises(user_profile):
+    # Example: Adjust difficulty or focus based on user's emotional state
+    personalized = []
+    for exercise in exercises:
+        personalized.append({
+            "id": exercise["id"],
+            "name": exercise["name"],
+            "description": exercise["description"],
+            "category": exercise["category"],
+            "difficulty": "Beginner" if user_profile["level"] == "beginner" else "Advanced"
+        })
+    return personalized
+
+@app.route('/create_profile', methods=['POST'])
+def create_profile():
+    data = request.json
+    user_id = data.get('user_id')
+    user_data[user_id] = {
+        "name": data.get('name'),
+        "level": data.get('level', 'beginner'),
+        "goals": data.get('goals', []),
+        "progress": []
+    }
+    return jsonify({"message": "Profile created successfully!", "profile": user_data[user_id]})
+
+@app.route('/get_exercises/<user_id>', methods=['GET'])
+def get_exercises(user_id):
+    if user_id not in user_data:
+        return jsonify({"error": "User not found."}), 404
+
+    user_profile = user_data[user_id]
+    personalized = personalize_exercises(user_profile)
+    return jsonify({"exercises": personalized})
+
+@app.route('/submit_progress/<user_id>', methods=['POST'])
+def submit_progress(user_id):
+    if user_id not in user_data:
+        return jsonify({"error": "User not found."}), 404
+
+    data = request.json
+    exercise_id = data.get('exercise_id')
+    feedback = data.get('feedback', "")
+    user_data[user_id]['progress'].append({
+        "exercise_id": exercise_id,
+        "feedback": feedback,
+        "timestamp": random.randint(1609459200, 1672444800)  # Simulated timestamp
+    })
+    return jsonify({"message": "Progress recorded!", "progress": user_data[user_id]['progress']})
+
+if __name__ == '__main__':
+    app.run(debug=True)
